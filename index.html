@@ -294,7 +294,7 @@ async function apiGet(){
   if(!API_URL) return;
   syncStatus='loading'; updateSyncLabel();
   try{
-    const r=await fetch(API_URL+'?action=getAll&t='+Date.now(),{cache:'no-store'}); const j=await r.json();
+    const r=await fetch(API_URL+'?action=getAll&t='+Date.now(),{cache:'no-store',redirect:'follow',credentials:'omit'}); const j=await r.json();
     if(j.ok){
       data=j.data.map(d=>({...d,value:parseFloat(d.value),date:toISODate(d.date)}));
       localStorage.setItem('fcpj_cache',JSON.stringify(data));
@@ -309,13 +309,13 @@ async function apiGet(){
 
 async function apiAdd(tx){
   if(!API_URL){data.unshift(tx);renderCurrentTab();return;}
-  try{ await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'add',...tx})}); await apiGet(); }
+  try{ await fetch(API_URL,{method:'POST',redirect:'follow',credentials:'omit',body:JSON.stringify({action:'add',...tx})}); await apiGet(); }
   catch(e){ data.unshift(tx); localStorage.setItem('fcpj_cache',JSON.stringify(data)); showToast('⚠️ Salvo localmente'); renderCurrentTab(); }
 }
 
 async function apiDelete(id){
   if(!API_URL){data=data.filter(t=>t.id!==id);renderCurrentTab();return;}
-  try{ await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'delete',id})}); await apiGet(); }
+  try{ await fetch(API_URL,{method:'POST',redirect:'follow',credentials:'omit',body:JSON.stringify({action:'delete',id})}); await apiGet(); }
   catch(e){ data=data.filter(t=>t.id!==id); showToast('⚠️ Removido localmente'); renderCurrentTab(); }
 }
 
@@ -323,7 +323,7 @@ async function apiDelete(id){
 async function blobLoad(key, fallback){
   if(!API_URL) return null;
   try{
-    const r=await fetch(`${API_URL}?action=getBlob&key=${key}&t=${Date.now()}`,{cache:'no-store'}); const j=await r.json();
+    const r=await fetch(`${API_URL}?action=getBlob&key=${key}&t=${Date.now()}`,{cache:'no-store',redirect:'follow',credentials:'omit'}); const j=await r.json();
     if(j.ok && j.value && j.value!=='[]') return JSON.parse(j.value);
   }catch(e){}
   return null;
@@ -331,7 +331,7 @@ async function blobLoad(key, fallback){
 async function blobSave(key, value){
   localStorage.setItem('fcpj_'+key, JSON.stringify(value));
   if(!API_URL) return;
-  try{ await fetch(API_URL,{method:'POST',body:JSON.stringify({action:'setBlob',key,value:JSON.stringify(value)})}); }
+  try{ await fetch(API_URL,{method:'POST',redirect:'follow',credentials:'omit',body:JSON.stringify({action:'setBlob',key,value:JSON.stringify(value)})}); }
   catch(e){}
 }
 
