@@ -294,7 +294,7 @@ async function apiGet(){
   if(!API_URL) return;
   syncStatus='loading'; updateSyncLabel();
   try{
-    const r=await fetch(API_URL+'?action=getAll'); const j=await r.json();
+    const r=await fetch(API_URL+'?action=getAll&t='+Date.now(),{cache:'no-store'}); const j=await r.json();
     if(j.ok){
       data=j.data.map(d=>({...d,value:parseFloat(d.value),date:toISODate(d.date)}));
       localStorage.setItem('fcpj_cache',JSON.stringify(data));
@@ -323,7 +323,7 @@ async function apiDelete(id){
 async function blobLoad(key, fallback){
   if(!API_URL) return null;
   try{
-    const r=await fetch(`${API_URL}?action=getBlob&key=${key}`); const j=await r.json();
+    const r=await fetch(`${API_URL}?action=getBlob&key=${key}&t=${Date.now()}`,{cache:'no-store'}); const j=await r.json();
     if(j.ok && j.value && j.value!=='[]') return JSON.parse(j.value);
   }catch(e){}
   return null;
