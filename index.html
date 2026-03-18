@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default" id="meta-statusbar">
-<meta name="apple-mobile-web-app-title" content="Fluxo PJ">
-<title>Fluxo de Caixa PJ</title>
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<title>Ledger</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -86,7 +86,7 @@ select option{background:var(--bg3)}
 .type-btn{flex:1;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);color:var(--text2);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
 .type-btn.inc.active{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 .type-btn.exp.active{background:var(--red-bg);border-color:var(--red);color:var(--red)}
-.btn-primary{width:100%;padding:14px;background:var(--green);border:none;border-radius:var(--radius);color:#0e0f11;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}
+.btn-primary{width:100%;padding:14px;background:var(--green);border:none;border-radius:var(--radius);color:var(--bg);font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s}
 .btn-primary:hover{background:var(--green2)}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
 
@@ -173,7 +173,7 @@ select option{background:var(--bg3)}
 .lock-wrap{position:relative;margin-bottom:12px}
 .lock-wrap input{padding-right:44px;font-size:16px;letter-spacing:.15em}
 .lock-eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:4px}
-.lock-btn{width:100%;padding:14px;background:var(--green);border:none;border-radius:var(--radius);color:#0e0f11;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px}
+.lock-btn{width:100%;padding:14px;background:var(--green);border:none;border-radius:var(--radius);color:var(--bg);font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:10px}
 .lock-btn:disabled{opacity:.5;cursor:not-allowed}
 .lock-err{font-size:12px;color:var(--red);text-align:center;min-height:18px}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
