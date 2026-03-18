@@ -154,8 +154,9 @@ select option{background:var(--bg3)}
 .api-setup input{border-color:var(--amber)}
 .api-setup button{margin-top:8px;background:var(--amber);color:#0e0f11;border:none;border-radius:8px;padding:10px;width:100%;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer}
 
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 18px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 18px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none;display:flex;align-items:center;gap:0}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+.toast-action{background:none;border:none;color:var(--blue);font-weight:700;font-size:13px;cursor:pointer;padding:0 0 0 14px;font-family:'Sora',sans-serif;text-decoration:underline}
 
 #lockscreen{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
 .lock-box{width:100%;max-width:320px}
@@ -203,6 +204,18 @@ select option{background:var(--bg3)}
 /* ── Textarea (note) ── */
 textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Sora',sans-serif;font-size:13px;padding:11px 13px;outline:none;transition:border-color .2s;resize:none;min-height:72px;line-height:1.5}
 textarea:focus{border-color:var(--blue)}
+
+/* ── Print / PDF export ── */
+.print-only{display:none}
+@media print{
+  .no-print,.nav,#ptr-bar,#lockscreen,#modal-overlay,.toast{display:none!important}
+  .print-only{display:block!important}
+  body{background:#fff!important;color:#000!important;padding:0!important}
+  .app{max-width:100%;padding:20px!important}
+  .card{background:#fff!important;border:1px solid #ccc!important;border-radius:6px!important;break-inside:avoid}
+  .dre-total{background:#f4f4f4!important;border:1px solid #999!important;border-radius:6px!important}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+}
 </style>
 <script>
 /* ── Ícone 📖 gerado via canvas para iOS/Mac ── */
@@ -379,10 +392,28 @@ function summary(txs) {
   const exp = txs.filter(t => t.type === 'exp').reduce((s, t) => s + t.value, 0);
   return { inc, exp, bal: inc - exp };
 }
+let _toastTimer = null;
+let _toastActionFn = null;
 function showToast(msg) {
+  clearTimeout(_toastTimer);
+  _toastActionFn = null;
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  t.innerHTML = `<span>${msg}</span>`;
+  t.classList.add('show');
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+function showToastAction(msg, actionLabel, onAction) {
+  clearTimeout(_toastTimer);
+  _toastActionFn = onAction;
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${msg}</span><button class="toast-action" onclick="_toastActionFn&&_toastActionFn();_dismissToast()">${actionLabel}</button>`;
+  t.classList.add('show');
+  _toastTimer = setTimeout(() => { t.classList.remove('show'); _toastActionFn = null; }, 4000);
+}
+function _dismissToast() {
+  clearTimeout(_toastTimer);
+  document.getElementById('toast').classList.remove('show');
+  _toastActionFn = null;
 }
 function updateSyncLabel() {
   const el = document.getElementById('sync-label');
@@ -567,6 +598,18 @@ async function apiDelete(id) {
     renderCurrentTab();
   }
 }
+async function apiDeleteSilent(id) {
+  if (!apiReady()) return;
+  try {
+    await gs({ action: 'delete', id });
+    const j = await gs({ action: 'getAll' });
+    if (j.ok) {
+      data = j.data.map(d => ({ ...d, value: parseFloat(d.value), date: toISODate(d.date) }));
+      localStorage.setItem('fcpj_cache', JSON.stringify(data));
+      syncStatus = 'ok'; updateSyncLabel();
+    }
+  } catch (e) { console.warn('apiDeleteSilent error:', e); }
+}
 
 // blobLoad retorna:
 //   array/objeto  → API respondeu (mesmo que vazio, é a fonte da verdade)
@@ -722,7 +765,7 @@ function renderLancar() {
       <button class="type-btn exp ${formType==='exp'?'active':''}" onclick="setFormType('exp')">− Despesa</button>
     </div>
     <div class="form-group"><label>Descrição</label><input type="text" id="f-desc" placeholder="Ex: Honorários contratuais" value="${prevDesc.replace(/"/g,'&quot;')}"></div>
-    <div class="form-group"><label>Valor (R$)</label><input type="number" id="f-val" placeholder="0,00" min="0" step="0.01" value="${prevVal}"></div>
+    <div class="form-group"><label>Valor (R$)</label><input type="number" id="f-val" placeholder="0,00" min="0" step="0.01" inputmode="decimal" value="${prevVal}"></div>
     <div class="form-group"><label>Categoria</label><select id="f-cat">${(formType==='inc'?CATS_INC:CATS_EXP).map(c=>`<option>${c}</option>`).join('')}</select></div>
     <div class="form-group"><label>Data</label><input type="date" id="f-date" value="${prevDate}"></div>
     <div class="form-group"><label>Nota <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(opcional)</span></label><textarea id="f-note" placeholder="Observação, referência, número do processo…">${prevNote}</textarea></div>
@@ -831,10 +874,22 @@ function initSwipe(wrap) {
   }, { passive: true });
 }
 
-async function confirmDelete(id) {
-  const ok = await modalConfirm({ title: 'Excluir lançamento', msg: 'Esta ação não pode ser desfeita.', confirmText: 'Excluir', danger: true });
-  if (!ok) return;
-  await apiDelete(id); showToast('🗑️ Removido');
+function confirmDelete(id) {
+  const tx = data.find(t => t.id === id);
+  if (!tx) return;
+  let undone = false;
+  data = data.filter(t => t.id !== id);
+  localStorage.setItem('fcpj_cache', JSON.stringify(data));
+  renderCurrentTab();
+  showToastAction('🗑️ Removido', 'Desfazer', () => {
+    undone = true;
+    data.push(tx);
+    data.sort((a, b) => (b.date||'').localeCompare(a.date||''));
+    localStorage.setItem('fcpj_cache', JSON.stringify(data));
+    renderCurrentTab();
+    showToast('↩️ Desfeito');
+  });
+  setTimeout(async () => { if (!undone) await apiDeleteSilent(id); }, 4500);
 }
 
 // ─── EDITAR LANÇAMENTO ─────────────────────────────────────
@@ -851,7 +906,7 @@ function editTx(id) {
         <button class="type-btn exp ${tx.type==='exp'?'active':''}" onclick="editTxType('exp')">− Despesa</button>
       </div>
       <div class="form-group"><label>Descrição</label><input type="text" id="edit-desc" value="${(tx.desc||'').replace(/"/g,'&quot;')}"></div>
-      <div class="form-group"><label>Valor (R$)</label><input type="number" id="edit-val" value="${tx.value}" min="0" step="0.01"></div>
+      <div class="form-group"><label>Valor (R$)</label><input type="number" id="edit-val" value="${tx.value}" min="0" step="0.01" inputmode="decimal"></div>
       <div class="form-group"><label>Categoria</label><select id="edit-cat">${(tx.type==='inc'?CATS_INC:CATS_EXP).map(c=>`<option${c===tx.cat?' selected':''}>${c}</option>`).join('')}</select></div>
       <div class="form-group"><label>Data</label><input type="date" id="edit-date" value="${tx.date||''}"></div>
       <div class="form-group"><label>Nota <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(opcional)</span></label><textarea id="edit-note" placeholder="Observação opcional…">${tx.note||''}</textarea></div>
@@ -894,11 +949,23 @@ async function saveTxEdit(id) {
   showToast('✅ Lançamento atualizado');
 }
 
-async function deleteTxFromEdit(id) {
+function deleteTxFromEdit(id) {
   hideModal();
-  const ok = await modalConfirm({ title: 'Excluir lançamento', msg: 'Esta ação não pode ser desfeita.', confirmText: 'Excluir', danger: true });
-  if (!ok) return;
-  await apiDelete(id); showToast('🗑️ Removido');
+  const tx = data.find(t => t.id === id);
+  if (!tx) return;
+  let undone = false;
+  data = data.filter(t => t.id !== id);
+  localStorage.setItem('fcpj_cache', JSON.stringify(data));
+  renderCurrentTab();
+  showToastAction('🗑️ Removido', 'Desfazer', () => {
+    undone = true;
+    data.push(tx);
+    data.sort((a, b) => (b.date||'').localeCompare(a.date||''));
+    localStorage.setItem('fcpj_cache', JSON.stringify(data));
+    renderCurrentTab();
+    showToast('↩️ Desfeito');
+  });
+  setTimeout(async () => { if (!undone) await apiDeleteSilent(id); }, 4500);
 }
 
 // ─── PARCELAS ──────────────────────────────────────────────
@@ -930,8 +997,8 @@ function renderParcelas() {
     <div class="card"><div class="sec-title" style="margin-bottom:14px">Novo parcelamento</div>
       <div class="form-group"><label>Cliente</label><input type="text" id="p-cli" placeholder="Nome do cliente"></div>
       <div class="form-group"><label>Descrição</label><input type="text" id="p-desc" placeholder="Ex: Honorários — Proc. nº…"></div>
-      <div class="form-group"><label>Valor total (R$)</label><input type="number" id="p-val" placeholder="0,00" min="0" step="0.01"></div>
-      <div class="form-group"><label>Número de parcelas</label><input type="number" id="p-num" placeholder="Ex: 6" min="2" max="60"></div>
+      <div class="form-group"><label>Valor total (R$)</label><input type="number" id="p-val" placeholder="0,00" min="0" step="0.01" inputmode="decimal"></div>
+      <div class="form-group"><label>Número de parcelas</label><input type="number" id="p-num" placeholder="Ex: 6" min="2" max="60" inputmode="numeric"></div>
       <div class="form-group"><label>Vencimento da 1ª parcela</label><input type="date" id="p-date" value="${todayISO()}"></div>
       <button class="btn-primary" onclick="addPar()">Criar parcelamento</button>
     </div>
@@ -1007,7 +1074,7 @@ function renderAdiantamentos() {
     <div class="card"><div class="sec-title" style="margin-bottom:14px">Nova despesa antecipada</div>
       <div class="form-group"><label>Cliente</label><input type="text" id="a-cli" placeholder="Nome do cliente"></div>
       <div class="form-group"><label>Descrição</label><input type="text" id="a-desc" placeholder="Ex: Custas judiciais"></div>
-      <div class="form-group"><label>Valor (R$)</label><input type="number" id="a-val" placeholder="0,00" min="0" step="0.01"></div>
+      <div class="form-group"><label>Valor (R$)</label><input type="number" id="a-val" placeholder="0,00" min="0" step="0.01" inputmode="decimal"></div>
       <div class="form-group"><label>Data</label><input type="date" id="a-date" value="${todayISO()}"></div>
       <button class="btn-primary" onclick="addAdi()">Registrar adiantamento</button>
     </div>
@@ -1101,7 +1168,8 @@ function renderRelatorios() {
     `<div class="month-chip${i===selectedMonth?' active':''}" onclick="setMonthDRE(${i})">${m}</div>`
   ).join('');
 
-  el.innerHTML = `<div class="month-row">${monthChips}</div>
+  el.innerHTML = `<div class="print-only" style="margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #333"><div style="font-size:20px;font-weight:700;letter-spacing:.02em">LEDGER — DRE Simplificado</div><div style="font-size:12px;color:#555;margin-top:2px">${MONTHS[selectedMonth]} ${selectedYear} · gerado em ${new Date().toLocaleDateString('pt-BR')}</div></div>
+    <div class="month-row no-print">${monthChips}</div>
     <div class="card"><div class="sec-hdr"><div class="sec-title">DRE · ${MONTHS[selectedMonth]} ${selectedYear}</div><div class="sec-sub">simplificado</div></div>
       <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:6px 0 2px">Receitas</div>
       ${dreRow('Contratuais',contratuais,'var(--green)',true)}${dreRow('Sucumbência',sucumbencia,'var(--green)',true)}${dreRow('Outros',outrasRec,'var(--green)',true)}
@@ -1111,14 +1179,15 @@ function renderRelatorios() {
       <div class="dre-row" style="border-top:1px solid var(--border2);margin-top:2px"><div class="dre-label" style="font-weight:700;color:var(--text)">Total despesas</div><div class="dre-val" style="color:var(--red);font-weight:700">${fmtBRL(totalExp)}</div></div>
       <div class="dre-total" style="background:${resultado>=0?'var(--green-bg)':'var(--red-bg)'};border:1px solid ${resultado>=0?'var(--green)':'var(--red)'}"><div style="font-size:14px;font-weight:700;color:${resultado>=0?'var(--green)':'var(--red)'}">Resultado líquido</div><div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${resultado>=0?'var(--green)':'var(--red)'}">${resultado>=0?'+':'−'} ${fmtBRL(resultado)}</div></div>
     </div>
-    <div class="card"><div class="sec-hdr"><div class="sec-title">Resumo ${selectedYear}</div><div style="display:flex;gap:10px"><span style="font-size:10px;font-weight:600;color:var(--green)">Receita</span><span style="font-size:10px;font-weight:600;color:var(--blue)">Resultado</span></div></div>${annualRows || `<div class="empty"><div class="empty-txt">Sem dados em ${selectedYear}</div></div>`}</div>
-    ${cardAcumulado}
-    <div class="card"><div class="sec-title" style="margin-bottom:14px">Exportar</div>
+    <div class="card no-print"><div class="sec-hdr"><div class="sec-title">Resumo ${selectedYear}</div><div style="display:flex;gap:10px"><span style="font-size:10px;font-weight:600;color:var(--green)">Receita</span><span style="font-size:10px;font-weight:600;color:var(--blue)">Resultado</span></div></div>${annualRows || `<div class="empty"><div class="empty-txt">Sem dados em ${selectedYear}</div></div>`}</div>
+    <div class="no-print">${cardAcumulado}</div>
+    <div class="card no-print"><div class="sec-title" style="margin-bottom:14px">Exportar</div>
+      <button class="export-btn" onclick="exportPDF()"><span>📄</span> DRE em PDF</button>
       <button class="export-btn" onclick="exportCSV()"><span>📊</span> CSV — Numbers / Excel</button>
       <button class="export-btn" onclick="exportAdi()"><span>📋</span> Adiantamentos em aberto</button>
       <button class="export-btn" onclick="exportPar()"><span>📋</span> Parcelas em aberto</button>
     </div>
-    <div class="card" style="border-color:var(--red);background:var(--red-bg)">
+    <div class="card no-print" style="border-color:var(--red);background:var(--red-bg)">
       <div class="sec-title" style="margin-bottom:4px;color:var(--red)">Zona de perigo</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:12px">Use apenas se a planilha for a fonte correta e o app estiver mostrando dados desatualizados do cache local.</div>
       <button class="export-btn" onclick="limparDadosLocais()" style="border-color:var(--red);color:var(--red)"><span>🗑️</span> Limpar cache local e recarregar</button>
@@ -1126,6 +1195,11 @@ function renderRelatorios() {
   setTimeout(mountMonthRows, 30);
 }
 function setMonthDRE(m) { selectedMonth = m; renderRelatorios(); }
+function exportPDF() {
+  // Ensure we're on the DRE tab so @media print shows correct content
+  if (currentTab !== 'relatorios') { showTab('relatorios'); setTimeout(window.print, 300); return; }
+  window.print();
+}
 
 function exportCSV() {
   if (!data.length) { showToast('⚠️ Nenhum dado'); return; }
