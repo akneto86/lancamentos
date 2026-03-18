@@ -711,7 +711,7 @@ async function deleteRec(id) {
 // ─── HISTÓRICO ─────────────────────────────────────────────
 function renderHistorico() {
   const el = document.getElementById('tab-historico');
-  let txs = [...data];
+  let txs = [...data].sort((a, b) => parseDate(b.date) - parseDate(a.date));
   if (histFilter==='inc') txs = txs.filter(t => t.type==='inc');
   if (histFilter==='exp') txs = txs.filter(t => t.type==='exp');
   if (histSearch) txs = txs.filter(t => t.desc.toLowerCase().includes(histSearch.toLowerCase()) || t.cat.toLowerCase().includes(histSearch.toLowerCase()));
