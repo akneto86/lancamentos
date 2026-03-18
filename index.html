@@ -105,9 +105,7 @@ select option{background:var(--bg3)}
 .empty-icon{font-size:32px;margin-bottom:10px}
 .empty-txt{font-size:13px}
 
-.tab-toggle{display:flex;gap:6px;margin-bottom:16px}
-.tab-pill{flex:1;padding:9px;border:1px solid var(--border);border-radius:10px;background:var(--bg3);color:var(--text2);font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s}
-.tab-pill.active{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+
 
 .par-group{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden}
 .par-header{display:flex;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--border);gap:10px}
@@ -142,12 +140,6 @@ select option{background:var(--bg3)}
 .badge-pago{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--green-bg);color:var(--green);border:1px solid var(--green);flex-shrink:0}
 .badge-aberto{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber);flex-shrink:0;cursor:pointer}
 
-.rec-item{display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:6px}
-.rec-day{width:40px;height:40px;border-radius:10px;background:var(--purple-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;color:var(--purple);flex-shrink:0;line-height:1.3}
-.rec-info{flex:1;min-width:0}
-.rec-desc{font-size:13px;font-weight:600}
-.rec-meta{font-size:11px;color:var(--text3);margin-top:2px}
-.rec-del{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:4px;flex-shrink:0;line-height:1}
 
 .dre-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)}
 .dre-row:last-child{border-bottom:none}
@@ -282,13 +274,12 @@ const CAT_COLORS = {'Contratuais':'#4d9fff','Sucumbência':'#a78bfa','Outros':'#
 const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
 let data = [];
-let recorrentes = safeParse(localStorage.getItem('fcpj_rec'), []);
 let adiantamentos = safeParse(localStorage.getItem('fcpj_adi'), []);
 let parcelamentos = safeParse(localStorage.getItem('fcpj_par'), []);
 let selectedMonth = new Date().getMonth();
 let selectedYear = new Date().getFullYear();
 let syncStatus = 'loading';
-let formType = 'inc', formMode = 'novo';
+let formType = 'inc';
 let histFilter = 'all', histSearch = '';
 let adiFilter = 'aberto', parFilter = 'aberto';
 let currentTab = 'dashboard';
@@ -510,44 +501,11 @@ async function blobSave(key, value) {
 
 async function saveAdi() { await blobSave('adi', adiantamentos); }
 async function savePar() { await blobSave('par', parcelamentos); }
-async function saveRec() {
-  localStorage.setItem('fcpj_rec', JSON.stringify(recorrentes));
-  await blobSave('rec', recorrentes);
-}
-
 async function loadBlobs() {
-  const [par, adi, rec] = await Promise.all([blobLoad('par'), blobLoad('adi'), blobLoad('rec')]);
+  const [par, adi] = await Promise.all([blobLoad('par'), blobLoad('adi')]);
   // undefined = falha de rede → mantém localStorage; qualquer outro valor (inclusive []) = API é fonte da verdade
   if (par !== undefined) { parcelamentos = par; localStorage.setItem('fcpj_par', JSON.stringify(par)); }
   if (adi !== undefined) { adiantamentos = adi; localStorage.setItem('fcpj_adi', JSON.stringify(adi)); }
-  if (rec !== undefined) { recorrentes   = rec; localStorage.setItem('fcpj_rec', JSON.stringify(rec)); }
-}
-
-// ─── RECORRENTES ───────────────────────────────────────────
-async function gerarRecorrentes() {
-  if (!recorrentes.length) return;
-  const now = new Date();
-  const mesAtual = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const gerados = safeParse(localStorage.getItem('fcpj_rec_gerado'), {});
-  const promises = [];
-
-  recorrentes.forEach(rec => {
-    const chave = `${rec.id}-${mesAtual}`;
-    if (gerados[chave]) return;
-    const date = `${mesAtual}-${String(rec.dia).padStart(2,'0')}`;
-    const tx = { id: uid(), type: 'exp', desc: rec.desc + ' (recorrente)', value: rec.value, cat: rec.cat, date };
-    data.unshift(tx);
-    if (API_URL) {
-      promises.push(
-        gs({ action: 'add', data: JSON.stringify(tx) }).catch(e => console.warn('Rec sync fail:', e))
-      );
-    }
-    gerados[chave] = true;
-  });
-
-  localStorage.setItem('fcpj_rec_gerado', JSON.stringify(gerados));
-  if (recorrentes.length) localStorage.setItem('fcpj_cache', JSON.stringify(data));
-  if (promises.length) await Promise.allSettled(promises);
 }
 
 // ─── TABS ──────────────────────────────────────────────────
@@ -653,20 +611,8 @@ function setMonth(m) { selectedMonth = m; renderDash(); }
 // ─── LANÇAR ────────────────────────────────────────────────
 function renderLancar() {
   const el = document.getElementById('tab-lancamentos');
-  const recList = recorrentes.length
-    ? recorrentes.map(r =>
-        `<div class="rec-item"><div class="rec-day">dia<br>${r.dia}</div><div class="rec-info"><div class="rec-desc">${r.desc}</div><div class="rec-meta">${r.cat}</div></div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--red);flex-shrink:0">− ${fmtBRL(r.value)}</div><button class="rec-del" onclick="deleteRec('${r.id}')">×</button></div>`
-      ).join('')
-    : `<div class="empty" style="padding:16px 0"><div class="empty-txt">Nenhuma despesa fixa cadastrada</div></div>`;
-
-  el.innerHTML = `<div class="tab-toggle"><div class="tab-pill ${formMode==='novo'?'active':''}" onclick="setFormMode('novo')">Novo lançamento</div><div class="tab-pill ${formMode==='recorrente'?'active':''}" onclick="setFormMode('recorrente')">Despesas fixas</div></div>
-    ${formMode==='novo'
-      ? `<div class="card"><div class="type-toggle"><button class="type-btn inc ${formType==='inc'?'active':''}" onclick="setFormType('inc')">+ Receita</button><button class="type-btn exp ${formType==='exp'?'active':''}" onclick="setFormType('exp')">− Despesa</button></div><div class="form-group"><label>Descrição</label><input type="text" id="f-desc" placeholder="Ex: Honorários contratuais"></div><div class="form-group"><label>Valor (R$)</label><input type="number" id="f-val" placeholder="0,00" min="0" step="0.01"></div><div class="form-group"><label>Categoria</label><select id="f-cat">${(formType==='inc'?CATS_INC:CATS_EXP).map(c=>`<option>${c}</option>`).join('')}</select></div><div class="form-group"><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div><button class="btn-primary" id="submit-btn" onclick="addTx()">Registrar lançamento</button></div>`
-      : `<div class="card"><div class="sec-hdr"><div class="sec-title">Cadastrar despesa fixa</div><div class="sec-sub">gera todo mês</div></div><div class="form-group"><label>Descrição</label><input type="text" id="r-desc" placeholder="Ex: Simples Nacional"></div><div class="form-group"><label>Valor (R$)</label><input type="number" id="r-val" placeholder="0,00" min="0" step="0.01"></div><div class="form-group"><label>Categoria</label><select id="r-cat">${CATS_EXP.map(c=>`<option>${c}</option>`).join('')}</select></div><div class="form-group"><label>Dia do mês</label><input type="number" id="r-dia" placeholder="Ex: 10" min="1" max="28"></div><button class="btn-primary" onclick="addRec()">Cadastrar despesa fixa</button></div>
-    <div class="card"><div class="sec-hdr"><div class="sec-title">Cadastradas</div><div class="sec-sub">${recorrentes.length} fixas</div></div>${recList}</div>`
-    }`;
+  el.innerHTML = `<div class="card"><div class="type-toggle"><button class="type-btn inc ${formType==='inc'?'active':''}" onclick="setFormType('inc')">+ Receita</button><button class="type-btn exp ${formType==='exp'?'active':''}" onclick="setFormType('exp')">− Despesa</button></div><div class="form-group"><label>Descrição</label><input type="text" id="f-desc" placeholder="Ex: Honorários contratuais"></div><div class="form-group"><label>Valor (R$)</label><input type="number" id="f-val" placeholder="0,00" min="0" step="0.01"></div><div class="form-group"><label>Categoria</label><select id="f-cat">${(formType==='inc'?CATS_INC:CATS_EXP).map(c=>`<option>${c}</option>`).join('')}</select></div><div class="form-group"><label>Data</label><input type="date" id="f-date" value="${todayISO()}"></div><button class="btn-primary" id="submit-btn" onclick="addTx()">Registrar lançamento</button></div>`;
 }
-function setFormMode(m) { formMode = m; renderLancar(); }
 function setFormType(t) { formType = t; renderLancar(); }
 
 async function addTx() {
@@ -685,33 +631,30 @@ async function addTx() {
   renderLancar();
 }
 
-async function addRec() {
-  const desc = document.getElementById('r-desc').value.trim();
-  const val = parseFloat(document.getElementById('r-val').value);
-  const cat = document.getElementById('r-cat').value;
-  const dia = parseInt(document.getElementById('r-dia').value);
-  if (!desc) { showToast('⚠️ Informe a descrição'); return; }
-  if (!val || val <= 0) { showToast('⚠️ Valor inválido'); return; }
-  if (!dia || dia < 1 || dia > 28) { showToast('⚠️ Dia entre 1 e 28'); return; }
-  recorrentes.push({ id: uid(), desc, value: val, cat, dia });
-  await saveRec(); showToast('✅ Despesa fixa cadastrada');
-  formMode = 'novo'; renderLancar();
-}
-
-async function deleteRec(id) {
-  if (!confirm('Remover esta despesa fixa?')) return;
-  recorrentes = recorrentes.filter(r => r.id !== id);
-  await saveRec();
-  const g = safeParse(localStorage.getItem('fcpj_rec_gerado'), {});
-  Object.keys(g).forEach(k => { if (k.startsWith(id + '-')) delete g[k]; });
-  localStorage.setItem('fcpj_rec_gerado', JSON.stringify(g));
-  showToast('🗑️ Removida'); renderLancar();
-}
-
 // ─── HISTÓRICO ─────────────────────────────────────────────
 function renderHistorico() {
   const el = document.getElementById('tab-historico');
-  let txs = [...data].sort((a, b) => parseDate(b.date) - parseDate(a.date));
+  // Renderiza estrutura (input + filtros) apenas uma vez para não destruir o foco
+  if (!document.getElementById('hist-list')) {
+    el.innerHTML = `
+      <div class="form-group"><input type="text" id="hist-search" placeholder="Buscar…" oninput="histSearch=this.value;renderHistoricoLista()" autocomplete="off" autocorrect="off" spellcheck="false"></div>
+      <div id="hist-filtros" style="display:flex;gap:6px;margin-bottom:14px"></div>
+      <div id="hist-list"></div>`;
+  }
+  // Mantém valor do input sincronizado com o estado (ex: após sync com API)
+  const searchEl = document.getElementById('hist-search');
+  if (searchEl && searchEl !== document.activeElement) searchEl.value = histSearch;
+  renderHistoricoLista();
+}
+
+function renderHistoricoLista() {
+  // Atualiza filtros sem recriar o input
+  const filtrosEl = document.getElementById('hist-filtros');
+  if (filtrosEl) filtrosEl.innerHTML = ['all','inc','exp'].map((f,i) =>
+    `<button onclick="histFilter='${f}';renderHistoricoLista()" style="flex:1;padding:8px;border:1px solid ${histFilter===f?'var(--blue)':'var(--border)'};border-radius:8px;background:${histFilter===f?'var(--blue-bg)':'var(--bg3)'};color:${histFilter===f?'var(--blue)':'var(--text2)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">${'Todos,Receitas,Despesas'.split(',')[i]}</button>`
+  ).join('');
+
+  let txs = [...data].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   if (histFilter==='inc') txs = txs.filter(t => t.type==='inc');
   if (histFilter==='exp') txs = txs.filter(t => t.type==='exp');
   if (histSearch) txs = txs.filter(t => t.desc.toLowerCase().includes(histSearch.toLowerCase()) || t.cat.toLowerCase().includes(histSearch.toLowerCase()));
@@ -723,11 +666,8 @@ function renderHistorico() {
       }).join('')
     : `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-txt">Nenhum lançamento</div></div>`;
 
-  el.innerHTML = `<div class="form-group"><input type="text" placeholder="Buscar…" oninput="histSearch=this.value;renderHistorico()" value="${histSearch}"></div>
-    <div style="display:flex;gap:6px;margin-bottom:14px">${['all','inc','exp'].map((f,i) =>
-      `<button onclick="histFilter='${f}';renderHistorico()" style="flex:1;padding:8px;border:1px solid ${histFilter===f?'var(--blue)':'var(--border)'};border-radius:8px;background:${histFilter===f?'var(--blue-bg)':'var(--bg3)'};color:${histFilter===f?'var(--blue)':'var(--text2)'};font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">${'Todos,Receitas,Despesas'.split(',')[i]}</button>`
-    ).join('')}</div>
-    ${list}${txs.length ? `<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:12px;font-family:'DM Mono',monospace">Toque para excluir · ${txs.length} registro${txs.length!==1?'s':''}</div>` : ''}`;
+  const listEl = document.getElementById('hist-list');
+  if (listEl) listEl.innerHTML = list + (txs.length ? `<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:12px;font-family:'DM Mono',monospace">Toque para excluir · ${txs.length} registro${txs.length!==1?'s':''}</div>` : '');
 }
 
 async function confirmDelete(id) {
@@ -982,10 +922,10 @@ function exportPar() {
 
 // ─── LIMPAR CACHE LOCAL ────────────────────────────────────
 function limparDadosLocais() {
-  if (!confirm('Isso apaga todos os dados salvos localmente (cache, parcelas, adiantamentos, despesas fixas) e recarrega os dados da planilha.\n\nContinuar?')) return;
-  const keysToRemove = ['fcpj_cache','fcpj_rec','fcpj_adi','fcpj_par','fcpj_rec_gerado'];
+  if (!confirm('Isso apaga todos os dados salvos localmente (cache, parcelas, adiantamentos) e recarrega os dados da planilha.\n\nContinuar?')) return;
+  const keysToRemove = ['fcpj_cache','fcpj_adi','fcpj_par'];
   keysToRemove.forEach(k => localStorage.removeItem(k));
-  data = []; recorrentes = []; adiantamentos = []; parcelamentos = [];
+  data = []; adiantamentos = []; parcelamentos = [];
   showToast('🗑️ Cache limpo — recarregando…');
   setTimeout(() => initApp(), 800);
 }
@@ -1025,12 +965,9 @@ function togglePwVis() {
 
 async function initApp() {
   if (apiReady()) {
-    // Carrega dados da API primeiro — evita race condition com gerarRecorrentes()
     await Promise.all([apiGet(), loadBlobs()]);
-    await gerarRecorrentes();
     renderCurrentTab();
   } else {
-    await gerarRecorrentes();
     syncStatus = 'error'; updateSyncLabel(); renderDash();
   }
 }
