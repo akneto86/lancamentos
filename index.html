@@ -4,13 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default" id="meta-statusbar">
 <meta name="apple-mobile-web-app-title" content="Fluxo PJ">
 <title>Fluxo de Caixa PJ</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
+  /* ── Tema escuro (padrão) ── */
   --bg:#0e0f11;--bg2:#16181c;--bg3:#1e2128;--bg4:#252930;
   --border:#2e333d;--border2:#3a404d;
   --text:#e8eaf0;--text2:#8b909e;--text3:#555c6e;
@@ -22,6 +23,20 @@
   --teal:#2dd4bf;--teal-bg:rgba(45,212,191,.08);
   --radius:12px;--radius-lg:18px;
   font-family:'Sora',sans-serif;
+}
+@media(prefers-color-scheme:light){
+  :root{
+    /* ── Tema claro — off-white + verde floresta ── */
+    --bg:#F7F5F0;--bg2:#EEEAE2;--bg3:#E5E0D6;--bg4:#DAD4C8;
+    --border:#CFC9BC;--border2:#BDB6A6;
+    --text:#1A2015;--text2:#4A5240;--text3:#5C6B55;
+    --green:#2E6B30;--green2:#245526;--green-bg:rgba(46,107,48,.10);
+    --red:#C0392B;--red-bg:rgba(192,57,43,.10);
+    --blue:#1A6A9A;--blue-bg:rgba(26,106,154,.10);
+    --amber:#B8720A;--amber-bg:rgba(184,114,10,.10);
+    --purple:#6B4FA0;--purple-bg:rgba(107,79,160,.10);
+    --teal:#1A7A6E;--teal-bg:rgba(26,122,110,.10);
+  }
 }
 body{background:var(--bg);color:var(--text);min-height:100vh;padding-top:env(safe-area-inset-top)}
 .app{max-width:480px;margin:0 auto;padding:16px 14px 90px}
@@ -164,13 +179,58 @@ select option{background:var(--bg3)}
 @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
 .shake{animation:shake .35s ease}
 </style>
+<script>
+/* ── Ícone 📖 gerado via canvas para iOS/Mac ── */
+(function(){
+  const size = 512;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const isLight = window.matchMedia('(prefers-color-scheme:light)').matches;
+  /* fundo: verde floresta no claro, escuro no dark */
+  ctx.fillStyle = isLight ? '#2E6B30' : '#16181c';
+  const r = size * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(r, 0);
+  ctx.lineTo(size - r, 0);
+  ctx.quadraticCurveTo(size, 0, size, r);
+  ctx.lineTo(size, size - r);
+  ctx.quadraticCurveTo(size, size, size - r, size);
+  ctx.lineTo(r, size);
+  ctx.quadraticCurveTo(0, size, 0, size - r);
+  ctx.lineTo(0, r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.closePath();
+  ctx.fill();
+  /* emoji 📖 centralizado */
+  ctx.font = size * 0.52 + 'px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('📖', size / 2, size / 2 + size * 0.03);
+  const url = c.toDataURL('image/png');
+  /* apple-touch-icon */
+  const link = document.createElement('link');
+  link.rel = 'apple-touch-icon';
+  link.href = url;
+  document.head.appendChild(link);
+  /* favicon */
+  const fav = document.createElement('link');
+  fav.rel = 'icon';
+  fav.type = 'image/png';
+  fav.href = url;
+  document.head.appendChild(fav);
+  /* atualiza cor da status bar conforme tema */
+  const bar = document.getElementById('meta-statusbar');
+  if (bar) bar.content = isLight ? 'default' : 'black-translucent';
+})();
+</script>
 </head>
 <body>
 
 <div id="lockscreen">
   <div class="lock-box" id="lock-box">
-    <div class="lock-logo">💼</div>
-    <div class="lock-title">Fluxo de Caixa PJ</div>
+    <div class="lock-logo">📖</div>
+    <div class="lock-title" style="letter-spacing:.08em">LEDGER</div>
     <div class="lock-sub">acesso restrito</div>
     <div class="lock-wrap">
       <input type="password" id="lock-input" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')unlock()">
@@ -184,10 +244,10 @@ select option{background:var(--bg3)}
 <div class="app" id="app" style="display:none">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
     <div>
-      <div style="font-size:18px;font-weight:700">Fluxo de Caixa</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:.08em">LEDGER</div>
       <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px" id="sync-label">PJ · carregando…</div>
     </div>
-    <div style="font-size:20px">💼</div>
+    <div style="font-size:20px">📖</div>
   </div>
   <nav class="nav">
     <button class="active" onclick="showTab('dashboard')">Dashboard</button>
@@ -215,7 +275,6 @@ select option{background:var(--bg3)}
    3. DRE: acumulado anual líquido + média mensal
    ═══════════════════════════════════════════════════════════ */
 
-// ► Após implantar o Apps Script, cole a URL aqui:
 const API_URL = 'https://script.google.com/macros/s/AKfycbwjrFChHQ3i48aOYHVFCBqUwqHjE9j2neqCY3eEufrv_BLHlLdmwuXoCXoFevgvxtA/exec';
 const CATS_INC = ['Contratuais','Sucumbência','Outros'];
 const CATS_EXP = ['Fornecedores','Impostos','Pessoal','Marketing','Infra/Tech','Outros'];
@@ -635,7 +694,8 @@ async function addRec() {
   if (!val || val <= 0) { showToast('⚠️ Valor inválido'); return; }
   if (!dia || dia < 1 || dia > 28) { showToast('⚠️ Dia entre 1 e 28'); return; }
   recorrentes.push({ id: uid(), desc, value: val, cat, dia });
-  await saveRec(); showToast('✅ Despesa fixa cadastrada'); renderLancar();
+  await saveRec(); showToast('✅ Despesa fixa cadastrada');
+  formMode = 'novo'; renderLancar();
 }
 
 async function deleteRec(id) {
@@ -715,7 +775,7 @@ function renderParcelas() {
     ${grupos || `<div class="empty"><div class="empty-icon">${parFilter==='aberto'?'✅':'📂'}</div><div class="empty-txt">${parFilter==='aberto'?'Nenhum parcelamento em aberto':'Nenhum parcelamento concluído'}</div></div>`}`;
 }
 
-function addPar() {
+async function addPar() {
   const cli = document.getElementById('p-cli').value.trim();
   const desc = document.getElementById('p-desc').value.trim();
   const val = parseFloat(document.getElementById('p-val').value);
@@ -733,7 +793,7 @@ function addPar() {
     status: 'aberto'
   }));
   parcelamentos.unshift({ id: uid(), cliente: cli, desc, total: val, parcelas });
-  savePar(); showToast('✅ Parcelamento criado'); renderParcelas();
+  await savePar(); showToast('✅ Parcelamento criado'); renderParcelas();
 }
 
 async function receberParcela(parId, parcIdx) {
@@ -838,11 +898,9 @@ function renderRelatorios() {
 
   const annualRows = MONTHS.map((m,i) => {
     const t = txInMonth(i, selectedYear);
-    const { inc, bal } = summary(t);
-    if (t.length) {
-      if (i <= limiteM) { acumuladoAnual += bal; mesesComDados++; }
-    }
     if (!t.length) return '';
+    const { inc, bal } = summary(t);
+    if (i <= limiteM) { acumuladoAnual += bal; mesesComDados++; }
     return `<div class="dre-row"><div class="dre-label">${m} ${selectedYear}</div><div style="display:flex;gap:14px"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--green)">${fmtBRL(inc)}</span><span style="font-family:'DM Mono',monospace;font-size:11px;color:${bal>=0?'var(--green)':'var(--red)'}">${bal>=0?'+':'-'} ${fmtBRL(bal)}</span></div></div>`;
   }).join('');
 
@@ -966,11 +1024,13 @@ function togglePwVis() {
 }
 
 async function initApp() {
-  await gerarRecorrentes();
   if (apiReady()) {
+    // Carrega dados da API primeiro — evita race condition com gerarRecorrentes()
     await Promise.all([apiGet(), loadBlobs()]);
+    await gerarRecorrentes();
     renderCurrentTab();
   } else {
+    await gerarRecorrentes();
     syncStatus = 'error'; updateSyncLabel(); renderDash();
   }
 }
