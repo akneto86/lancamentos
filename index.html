@@ -65,6 +65,10 @@ body{background:var(--bg);color:var(--text);min-height:100vh;padding-top:env(saf
 .month-row.dragging{cursor:grabbing}
 .month-chip{padding:6px 13px;border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:var(--bg2);color:var(--text2);transition:border-color .15s,color .15s,background .15s;flex-shrink:0;font-family:'DM Mono',monospace}
 .month-chip.active{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+.year-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.year-nav-btn{background:none;border:none;color:var(--text2);cursor:pointer;font-size:18px;padding:2px 10px;border-radius:8px;font-family:'DM Mono',monospace;transition:color .15s;line-height:1}
+.year-nav-btn:hover{color:var(--text)}
+.year-nav-label{font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text);letter-spacing:.04em}
 
 .tx-item{display:flex;align-items:center;gap:12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;cursor:pointer;transition:border-color .15s;margin-bottom:6px}
 .tx-item:hover{border-color:var(--border2)}
@@ -689,7 +693,7 @@ function renderDash() {
   ).join('');
   const labels = chartMonths.map(c => `<span>${c.label}</span>`).join('');
   const monthChips = MONTHS.map((m, i) =>
-    `<div class="month-chip${i===selectedMonth?' active':''}" onclick="setMonth(${i})">${m} ${selectedYear}</div>`
+    `<div class="month-chip${i===selectedMonth?' active':''}" onclick="setMonth(${i})">${m}</div>`
   ).join('');
 
   const catTotals = {};
@@ -747,7 +751,7 @@ function renderDash() {
     <div style="font-size:10px;color:var(--text3)">${adiAbertos.length} em aberto</div>
   </div>` : '';
 
-  el.innerHTML = `${apiSetupBanner()}<div class="month-row">${monthChips}</div>
+  el.innerHTML = `${apiSetupBanner()}<div class="year-nav"><button class="year-nav-btn" onclick="setYear(-1)">‹</button><span class="year-nav-label">${selectedYear}</span><button class="year-nav-btn" onclick="setYear(1)">›</button></div><div class="month-row">${monthChips}</div>
     <div class="card" style="background:${bal>=0?'var(--green-bg)':'var(--red-bg)'};border-color:${bal>=0?'var(--green)':'var(--red)'}">
       <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:${bal>=0?'var(--green)':'var(--red)'};margin-bottom:4px">Resultado do mês</div>
       <div style="font-size:26px;font-weight:700;font-family:'DM Mono',monospace;color:${bal>=0?'var(--green)':'var(--red)'}">${bal>=0?'+':'−'} ${fmtBRL(bal)}</div>
@@ -764,6 +768,11 @@ function renderDash() {
   setTimeout(mountMonthRows, 30);
 }
 function setMonth(m) { selectedMonth = m; renderDash(); }
+function setYear(delta) {
+  selectedYear += delta;
+  if (currentTab === 'relatorios') renderRelatorios();
+  else renderDash();
+}
 
 // ─── LANÇAR ────────────────────────────────────────────────
 function renderLancar() {
@@ -1163,18 +1172,16 @@ function renderRelatorios() {
   const corMedia = mediaAnual >= 0 ? 'var(--green)' : 'var(--red)';
 
   const cardAcumulado = mesesComDados > 0 ? `
-    <div class="card" style="background:${acumuladoAnual>=0?'var(--green-bg)':'var(--red-bg)'};border-color:${acumuladoAnual>=0?'var(--green)':'var(--red)'};margin-bottom:12px">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:${corAcum};margin-bottom:10px">Acumulado ${selectedYear} · até ${MONTHS[limiteM]}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:'DM Mono',monospace">Líquido acumulado</div>
-          <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${corAcum}">${acumuladoAnual>=0?'+':'−'} ${fmtBRL(acumuladoAnual)}</div>
-        </div>
-        <div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-family:'DM Mono',monospace">Média mensal</div>
-          <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:700;color:${corMedia}">${mediaAnual>=0?'+':'−'} ${fmtBRL(mediaAnual)}</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">${mesesComDados} ${mesesComDados===1?'mês':'meses'} com dados</div>
-        </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div class="card" style="background:${acumuladoAnual>=0?'var(--green-bg)':'var(--red-bg)'};border-color:${acumuladoAnual>=0?'var(--green)':'var(--red)'};padding:14px 12px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${corAcum};margin-bottom:8px">Líquido acumulado</div>
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${corAcum}">${acumuladoAnual>=0?'+':'−'} ${fmtBRL(acumuladoAnual)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">até ${MONTHS[limiteM]} ${selectedYear}</div>
+      </div>
+      <div class="card" style="background:${mediaAnual>=0?'var(--green-bg)':'var(--red-bg)'};border-color:${mediaAnual>=0?'var(--green)':'var(--red)'};padding:14px 12px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:${corMedia};margin-bottom:8px">Média mensal</div>
+        <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${corMedia}">${mediaAnual>=0?'+':'−'} ${fmtBRL(mediaAnual)}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">${mesesComDados} ${mesesComDados===1?'mês':'meses'} com dados</div>
       </div>
     </div>` : '';
 
@@ -1183,6 +1190,7 @@ function renderRelatorios() {
   ).join('');
 
   el.innerHTML = `<div class="print-only" style="margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid #333"><div style="font-size:20px;font-weight:700;letter-spacing:.02em">LEDGER — DRE Simplificado</div><div style="font-size:12px;color:#555;margin-top:2px">${MONTHS[selectedMonth]} ${selectedYear} · gerado em ${new Date().toLocaleDateString('pt-BR')}</div></div>
+    <div class="year-nav no-print"><button class="year-nav-btn" onclick="setYear(-1)">‹</button><span class="year-nav-label">${selectedYear}</span><button class="year-nav-btn" onclick="setYear(1)">›</button></div>
     <div class="month-row no-print">${monthChips}</div>
     <div class="card"><div class="sec-hdr"><div class="sec-title">DRE · ${MONTHS[selectedMonth]} ${selectedYear}</div><div class="sec-sub">simplificado</div></div>
       <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:6px 0 2px">Receitas</div>
